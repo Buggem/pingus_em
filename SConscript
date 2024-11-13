@@ -86,8 +86,8 @@ class Project:
     def configure_begin(self):
         self.opts = Variables("custom.py", ARGUMENTS)
         self.opts.Add('BUILD', 'Set the build type', "default")
-        self.opts.Add('CC', 'C Compiler', 'gcc')
-        self.opts.Add('CXX', 'C++ Compiler', 'g++')
+        self.opts.Add('CC', 'C Compiler', 'emcc')
+        self.opts.Add('CXX', 'C++ Compiler', 'em++')
     #   self.opts.Add('debug', 'Build with debugging options', 0)
     #   self.opts.Add('profile', 'Build with profiling support', 0)
     
