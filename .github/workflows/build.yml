@@ -1,0 +1,74 @@
+name: Build & Deploy Engine
+on: [push, pull_request]
+jobs:
+#  cleanup:
+#    runs-on: self-hosted
+#    steps:
+#    - name: Cleanup
+#      run: rm -rf .* || true
+  build:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            targetos: linux
+            targetarch: i386
+    env:
+      SDL_VERSION: 2.30.3
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install dependencies
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt update
+        sudo apt install gcc-multilib g++-multilib libx11-dev:i386 libxext-dev:i386 x11-utils libgl1-mesa-dev libasound-dev libstdc++6:i386 libfuse2:i386 zlib1g:i386 libpulse0:i386 libpulse-dev libjack-dev:i386 libwayland-dev:i386 libxkbcommon-dev:i386 wayland-scanner++
+
+    - name: Setup Emscripten toolchain
+      uses: mymindstorm/setup-emsdk@v14
+    - name: Build engine
+      run: emcmake cmake
+    - name: Upload engine (artifacts)
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifact-${{ matrix.targetos }}-${{ matrix.targetarch }}
+        path: |
+          ./*
+  download:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ghpages
+    - name: Setup Node & NPM
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        path: ./
+        pattern: artifact-*
+        merge-multiple: true
+    - name: Uglify JS for faster runtime (probably)
+      run: |
+          npm install uglify-js -g
+          uglifyjs sdl_doom.js -c > sdl_doom.js.min
+          rm sdl_doom.js
+          mv sdl_doom.js.min sdl_doom.js
+    - name: Push to GH Pages
+      run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Update GH Pages as per master branch"
+          git push
+    
+          
